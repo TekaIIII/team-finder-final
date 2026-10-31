@@ -1,32 +1,55 @@
-// Header sidebar toggle logic
-(function(){
-  document.addEventListener("DOMContentLoaded", function() {
-    const userMenu = document.querySelector('.user-menu');
-    const sidebar = document.getElementById('userSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
+document.addEventListener("DOMContentLoaded", () => {
+  const knop = document.querySelector(".user-menu");
+  const panel = document.getElementById("userSidebar");
+  const fon = document.getElementById("sidebarOverlay");
+  if (!knop || !panel || !fon) return;
 
-    if (!userMenu || !sidebar || !overlay) return;
+  knop.setAttribute("role", "button");
+  knop.setAttribute("tabindex", "0");
+  knop.setAttribute("aria-controls", panel.id);
+  knop.setAttribute("aria-expanded", "false");
+  panel.setAttribute("aria-hidden", "true");
 
-    function openSidebar() {
-      sidebar.classList.add('show');
-      overlay.classList.add('show');
-    }
+  function otkryt() {
+    panel.classList.add("show");
+    fon.classList.add("show");
+    knop.setAttribute("aria-expanded", "true");
+    panel.setAttribute("aria-hidden", "false");
+  }
 
-    function closeSidebar() {
-      sidebar.classList.remove('show');
-      overlay.classList.remove('show');
-    }
+  function zakryt() {
+    panel.classList.remove("show");
+    fon.classList.remove("show");
+    knop.setAttribute("aria-expanded", "false");
+    panel.setAttribute("aria-hidden", "true");
+  }
 
-    userMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openSidebar();
-    });
+  function pereklyuchit() {
+    if (panel.classList.contains("show")) zakryt();
+    else otkryt();
+  }
 
-    document.addEventListener('click', (e) => {
-      const isClickInside = sidebar.contains(e.target) || userMenu.contains(e.target);
-      if (!isClickInside && sidebar.classList.contains('show')) {
-        closeSidebar();
-      }
-    });
+  knop.addEventListener("click", (sob) => {
+    sob.preventDefault();
+    pereklyuchit();
   });
-})();
+
+  knop.addEventListener("keydown", (sob) => {
+    if (sob.key === "Enter" || sob.key === " ") {
+      sob.preventDefault();
+      pereklyuchit();
+    }
+  });
+
+  document.addEventListener("keydown", (sob) => {
+    if (sob.key === "Escape" && panel.classList.contains("show")) {
+      zakryt();
+      knop.focus();
+    }
+  });
+
+  document.addEventListener("click", (sob) => {
+    const vnutri = panel.contains(sob.target) || knop.contains(sob.target);
+    if (!vnutri) zakryt();
+  });
+});

@@ -40,6 +40,11 @@
         </div>
 
         <div class="form-field">
+            {{ form.email.label_tag }}
+            {{ form.email }}
+        </div>
+
+        <div class="form-field">
             {{ form.about.label_tag }}
             {{ form.about }}
         </div>
@@ -57,9 +62,9 @@
 
         {% if form.errors %}
         <div class="form-errors">
-            {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                    <p>{{ error }}</p>
+            {% for pole, oshibki in form.errors.items %}
+                {% for err in oshibki %}
+                    <p>{{ err }}</p>
                 {% endfor %}
             {% endfor %}
         </div>

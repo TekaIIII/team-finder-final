@@ -31,15 +31,15 @@
                 {{ project.status }}
             {% endif %}
         </span>
-        {% with count=project.participants.count %}
+        {% with kol=project.participants.count %}
         <div class="project-participants">
             {% include 'includes/svg/participants.html' %}
-            {{ count }}
-            {% if count|add:'-11'|divisibleby:100 or count|add:'-12'|divisibleby:100 or count|add:'-13'|divisibleby:100 or count|add:'-14'|divisibleby:100 %}
+            {{ kol }}
+            {% if kol|add:'-11'|divisibleby:100 or kol|add:'-12'|divisibleby:100 or kol|add:'-13'|divisibleby:100 or kol|add:'-14'|divisibleby:100 %}
                 участников
-            {% elif count|add:'-1'|divisibleby:10 %}
+            {% elif kol|add:'-1'|divisibleby:10 %}
                 участник
-            {% elif count|add:'-2'|divisibleby:10 or count|add:'-3'|divisibleby:10 or count|add:'-4'|divisibleby:10 %}
+            {% elif kol|add:'-2'|divisibleby:10 or kol|add:'-3'|divisibleby:10 or kol|add:'-4'|divisibleby:10 %}
                 участника
             {% else %}
                 участников

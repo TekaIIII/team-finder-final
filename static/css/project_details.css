@@ -152,3 +152,86 @@
 .skills-container {
     margin-top: 12px;
 }
+.sosedi {
+    margin-bottom: 20px;
+    padding: 22px;
+    border: 1px solid #cbdad4;
+    border-radius: 12px;
+    background: #f1f6f3;
+}
+
+.sosedi-label {
+    color: #345b4e;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+}
+
+.sosedi-header h3 {
+    margin: 8px 0;
+}
+
+.sosedi-header p {
+    margin: 0 0 18px;
+    color: #4a5c54;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sosedi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 12px;
+}
+
+.sosedi-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #d6e2dc;
+    border-radius: 10px;
+    background: #fff;
+    overflow-wrap: anywhere;
+}
+
+.sosedi-number {
+    color: #637c70;
+    font-size: 13px;
+}
+
+.sosedi-card h4 {
+    margin: 10px 0 8px;
+    line-height: 1.4;
+}
+
+.sosedi-card a {
+    color: #183f30;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.sosedi-card a:focus-visible {
+    outline: 2px solid #345b4e;
+    outline-offset: 4px;
+}
+
+.sosedi-owner, .sosedi-caption {
+    color: #53645c;
+    font-size: 12px;
+}
+
+.sosedi-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sosedi-skills li {
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: #254d3c;
+    background: #e8f1eb;
+    font-size: 12px;
+}

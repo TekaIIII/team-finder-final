@@ -1,19 +1,18 @@
 from pathlib import Path
+
 from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# TODO: Создать и заполнить .env, ориентируясь на .env_example
-
+# Основные настройки.
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
-# Application definition
-
+# Подключённые приложения.
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -21,8 +20,17 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "users.apps.UsersConfig",
+    "skills.apps.SkillsConfig",
+    "projects.apps.ProjectsConfig",
 ]
 
+
+# Собственная модель пользователя.
+AUTH_USER_MODEL = "users.User"
+
+
+# Промежуточные обработчики запросов и ответов.
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -33,12 +41,16 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
+# Основной файл маршрутов.
 ROOT_URLCONF = "team_finder.urls"
 
+
+# Настройки шаблонов.
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / f"templates_var{config('TASK_VERSION', default='1')}"],
+        "DIRS": [BASE_DIR / f"templates_var{config('TASK_VERSION', default='3')}"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -50,12 +62,11 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = "team_finder.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# Подключение к PostgreSQL.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -68,51 +79,56 @@ DATABASES = {
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# Проверки паролей.
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": ("django.contrib.auth.password_validation.UserAttributeSimilarityValidator"),
+        "OPTIONS": {
+            "user_attributes": [
+                "name",
+                "surname",
+                "email",
+            ],
+        },
+    },
+    {
+        "NAME": ("django.contrib.auth.password_validation.MinimumLengthValidator"),
+        "OPTIONS": {
+            "min_length": 8,
+        },
+    },
+    {
+        "NAME": ("django.contrib.auth.password_validation.CommonPasswordValidator"),
+    },
+    {
+        "NAME": ("django.contrib.auth.password_validation.NumericPasswordValidator"),
+    },
+]
 
-AUTH_PASSWORD_VALIDATORS = []
-if not DEBUG:
-    AUTH_PASSWORD_VALIDATORS.extend(
-        [
-            {
-                "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-            },
-            {
-                "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-            },
-            {
-                "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-            },
-            {
-                "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-            },
-        ]
-    )
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+# Язык и часовой пояс.
+LANGUAGE_CODE = "ru-ru"
 
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Moscow"
 
 USE_I18N = True
 
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# Статические файлы.
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-# Media files
 
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+
+# Файлы, загружаемые пользователями.
 MEDIA_URL = "/media/"
+
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+# Тип автоматически создаваемого первичного ключа.
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
