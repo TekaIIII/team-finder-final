@@ -15,19 +15,7 @@
     <div class="project-card-header">
       <a href="{% url 'users:profile' project.owner.pk %}">
         <div class="project-card-header-left">
-          {% if project.owner.avatar %}
-            <img
-              src="{{ project.owner.avatar.url }}"
-              alt="Аватар автора"
-              class="project-author-avatar"
-            >
-          {% else %}
-            <img
-              src="{% static 'images/default-avatar.png' %}"
-              alt="Аватар по умолчанию"
-              class="project-author-avatar"
-            >
-          {% endif %}
+          {% include "includes/avatar.html" with polz=project.owner klass="project-author-avatar" only %}
 
           <div class="project-meta">
             <span class="project-author">
@@ -191,19 +179,7 @@
           id="participant-{{ uch.pk }}"
         >
           <div class="participant-item">
-            {% if uch.avatar %}
-              <img
-                src="{{ uch.avatar.url }}"
-                alt="Аватар"
-                class="participant-avatar"
-              >
-            {% else %}
-              <img
-                src="{% static 'images/default-avatar.png' %}"
-                alt="Аватар по умолчанию"
-                class="participant-avatar"
-              >
-            {% endif %}
+            {% include "includes/avatar.html" with polz=uch klass="participant-avatar" only %}
 
             <div class="participant-info">
               <span class="participant-name">

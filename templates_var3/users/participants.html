@@ -32,19 +32,7 @@
           <div class="participant-card">
             <div class="participant-card-header">
               <a href="/users/{{ polz.id }}/">
-                {% if polz.avatar %}
-                  <img
-                    src="{{ polz.avatar.url }}"
-                    alt="Аватар {{ polz.name }}"
-                    class="participant-avatar"
-                  >
-                {% else %}
-                  <img
-                    src="{% static 'images/default-avatar.png' %}"
-                    alt="Аватар по умолчанию"
-                    class="participant-avatar"
-                  >
-                {% endif %}
+                {% include "includes/avatar.html" with polz=polz klass="participant-avatar" only %}
               </a>
             </div>
 

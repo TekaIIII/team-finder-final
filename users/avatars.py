@@ -28,7 +28,7 @@ def sdelat_avu(imya, pochta):
     else:
         buk = "?"
 
-    put = settings.BASE_DIR / "static" / "fonts" / "Neue_Haas_Grotesk_Display_Pro_75_Bold.otf"
+    put = settings.BASE_DIR / "static" / "fonts" / "DejaVuSans-Bold.ttf"
     shr = ImageFont.truetype(str(put), size=120)
     img = Image.new("RGB", (razm, razm), color=fon)
     ris = ImageDraw.Draw(img)

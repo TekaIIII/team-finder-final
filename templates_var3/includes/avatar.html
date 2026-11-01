@@ -1,0 +1,22 @@
+<span
+  class="{{ klass }} buk-ava"
+  role="img"
+  aria-label="Аватар: {{ polz.name }} {{ polz.surname }}"
+>
+  <span class="buk-ava-letter" aria-hidden="true">
+    {{ polz.name|default:"?"|first|upper }}
+  </span>
+
+  {% with adr=polz.ssylka_avy %}
+    <img
+      class="buk-ava-img"
+      alt=""
+      aria-hidden="true"
+      {% if adr %}
+        src="{{ adr }}"
+      {% else %}
+        hidden
+      {% endif %}
+    >
+  {% endwith %}
+</span>

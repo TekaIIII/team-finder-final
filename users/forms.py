@@ -1,3 +1,6 @@
+from pathlib import Path
+from uuid import uuid4
+
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
@@ -86,6 +89,7 @@ class LoginForm(forms.Form):
 
 
 class ProfileForm(forms.ModelForm):
+    sbros_avy = forms.BooleanField(required=False, label="Использовать букву имени")
     phone = forms.CharField(
         label="Телефон",
         max_length=12,
@@ -111,3 +115,19 @@ class ProfileForm(forms.ModelForm):
 
     def clean_phone(self):
         return svobodny_nom(self.cleaned_data["phone"], self.instance.pk)
+
+    def clean_avatar(self):
+        ava = self.cleaned_data.get("avatar")
+        if self.files.get("avatar") and ava:
+            ras = Path(ava.name).suffix.lower()
+            ava.name = f"{uuid4().hex}{ras}"
+        return ava
+
+    def save(self, commit=True):
+        usr = super().save(commit=False)
+        if self.cleaned_data.get("sbros_avy") and not self.files.get("avatar"):
+            usr.dobavit_avu()
+        if commit:
+            usr.save()
+            self.save_m2m()
+        return usr

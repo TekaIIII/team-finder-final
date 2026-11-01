@@ -16,16 +16,18 @@
 
         <div class="avatar-upload">
             <div class="avatar-preview">
-                {% if user.avatar %}
-                    <img src="{{ user.avatar.url }}" alt="Аватар">
-                {% else %}
-                    <img src="{% static 'images/default-avatar.png' %}" alt="Аватар по умолчанию">
-                {% endif %}
+                {% include "includes/avatar.html" with polz=user klass="edit-avatar" only %}
                 <div class="overlay">
-                    <button type="button" onclick="document.getElementById('id_avatar').click()">Заменить</button>
+                    <button type="button" id="vybrat-avatar">Заменить</button>
                 </div>
             </div>
             {{ form.avatar }}
+            <label class="avatar-reset" for="id_sbros_avy">
+                {{ form.sbros_avy }} Использовать букву имени
+            </label>
+            <p class="avatar-note" id="avatar-note" role="status" aria-live="polite">
+                Новая картинка появится сразу. Чтобы сохранить её в профиле, нажмите «Сохранить».
+            </p>
         </div>
 
         <div class="form-row">

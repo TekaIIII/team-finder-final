@@ -121,3 +121,58 @@ class PolzProverki(TestCase):
         self.assertIn("email", otv.context["form"].errors)
         self.usr.refresh_from_db()
         self.assertEqual(self.usr.email, "anna@example.com")
+
+    def test_kirillicheskie_bukvy_ne_odinakovye_kvadraty(self):
+        from io import BytesIO
+
+        from PIL import Image, ImageChops
+
+        perv = Image.open(BytesIO(sdelat_avu("Анна", "test@example.com").read()))
+        vtor = Image.open(BytesIO(sdelat_avu("Яна", "test@example.com").read()))
+        self.assertIsNotNone(ImageChops.difference(perv, vtor).getbbox())
+
+    def test_zagruzka_avy_srazu_sohranyaet_novuyu_ssylku(self):
+        from io import BytesIO
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        self.client.force_login(self.usr)
+        ssylki = []
+        for cvet in ["blue", "red"]:
+            buf = BytesIO()
+            Image.new("RGB", (20, 20), color=cvet).save(buf, format="PNG")
+            fail = SimpleUploadedFile("avatar.png", buf.getvalue(), content_type="image/png")
+            otv = self.client.post("/users/edit-profile/", self.dannye(avatar=fail), follow=True)
+            self.assertEqual(otv.status_code, 200)
+            self.usr.refresh_from_db()
+            self.assertContains(otv, self.usr.avatar.url)
+            with self.usr.avatar.open("rb") as ava:
+                self.assertEqual(
+                    Image.open(ava).getpixel((0, 0)),
+                    Image.new("RGB", (1, 1), cvet).getpixel((0, 0)),
+                )
+            ssylki.append(self.usr.avatar.url)
+        self.assertNotEqual(ssylki[0], ssylki[1])
+
+    def test_mozhno_vernutsya_k_bukve_imeni(self):
+        self.client.force_login(self.usr)
+        star = self.usr.avatar.name
+        otv = self.client.post("/users/edit-profile/", self.dannye(sbros_avy="on", name="Яна"))
+        self.assertEqual(otv.status_code, 302)
+        self.usr.refresh_from_db()
+        self.assertNotEqual(self.usr.avatar.name, star)
+        with self.usr.avatar.open("rb") as ava:
+            self.assertEqual(ava.read(), sdelat_avu("Яна", self.usr.email).read())
+
+    def test_shablon_ostavlyaet_bukvu_pri_otsutstvii_fayla(self):
+        from django.template.loader import render_to_string
+
+        self.usr.avatar = ""
+        html = render_to_string("includes/avatar.html", {"polz": self.usr, "klass": "avatar"})
+        self.assertIn('aria-hidden="true">А</span>', html)
+        self.assertNotIn("src=", html)
+        self.usr.avatar = "avatars/missing.png"
+        html = render_to_string("includes/avatar.html", {"polz": self.usr, "klass": "avatar"})
+        self.assertIn('aria-hidden="true">А</span>', html)
+        self.assertIn('class="buk-ava-img"', html)

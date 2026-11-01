@@ -14,11 +14,7 @@
 <div class="profile-container">
     <div class="profile-header">
         <div class="profile-info">
-            {% if user.avatar %}
-                <img src="{{ user.avatar.url }}" alt="Аватар" class="profile-avatar">
-            {% else %}
-                <img src="{% static 'images/default-avatar.png' %}" alt="Аватар по умолчанию" class="profile-avatar">
-            {% endif %}
+            {% include "includes/avatar.html" with polz=user klass="profile-avatar" only %}
             <div class="profile-details">
                 <h2 class="profile-name">{{ user.name }} {{ user.surname }}</h2>
                 <p class="profile-description">
