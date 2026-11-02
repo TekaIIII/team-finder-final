@@ -15,7 +15,7 @@
     <div class="project-card-header">
       <a href="{% url 'users:profile' project.owner.pk %}">
         <div class="project-card-header-left">
-          {% include "includes/avatar.html" with polz=project.owner klass="project-author-avatar" only %}
+          {% include "includes/avatar.html" with avatar_user=project.owner avatar_class="project-author-avatar" only %}
 
           <div class="project-meta">
             <span class="project-author">
@@ -123,15 +123,15 @@
       class="skills-container"
       data-project-id="{{ project.pk }}"
     >
-      {% for nav in project.skills.all %}
-        <span class="skill-chip" data-id="{{ nav.pk }}">
-          {{ nav.name }}
+      {% for skill in project.skills.all %}
+        <span class="skill-chip" data-id="{{ skill.pk }}">
+          {{ skill.name }}
 
           {% if request.user.pk == project.owner_id %}
             <button
               type="button"
               class="remove-skill-btn"
-              aria-label="Удалить {{ nav.name }}"
+              aria-label="Удалить {{ skill.name }}"
               title="Удалить"
             >
               ×
@@ -173,20 +173,20 @@
     </h3>
 
     <div id="participants-list" class="participants-list">
-      {% for uch in project.participants.all %}
+      {% for participant in project.participants.all %}
         <a
-          href="{% url 'users:profile' uch.pk %}"
-          id="participant-{{ uch.pk }}"
+          href="{% url 'users:profile' participant.pk %}"
+          id="participant-{{ participant.pk }}"
         >
           <div class="participant-item">
-            {% include "includes/avatar.html" with polz=uch klass="participant-avatar" only %}
+            {% include "includes/avatar.html" with avatar_user=participant avatar_class="participant-avatar" only %}
 
             <div class="participant-info">
               <span class="participant-name">
-                {{ uch.name }} {{ uch.surname }}
+                {{ participant.name }} {{ participant.surname }}
               </span>
               <span class="participant-role">
-                {% if uch.pk == project.owner_id %}
+                {% if participant.pk == project.owner_id %}
                   Автор проекта
                 {% else %}
                   Участник

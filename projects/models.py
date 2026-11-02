@@ -1,10 +1,19 @@
 from django.conf import settings
 from django.db import models
+from django.urls import reverse
+
+from common.constants import (
+    PROJECT_NAME_MAX_LENGTH,
+    PROJECT_OPEN,
+    PROJECT_STATUS_CHOICES,
+    PROJECT_STATUS_MAX_LENGTH,
+    URL_MAX_LENGTH,
+)
 
 
 class Project(models.Model):
-    STATUS_CHOICES = (("open", "Open"), ("closed", "Closed"))
-    name = models.CharField("Название проекта", max_length=200)
+    STATUS_CHOICES = PROJECT_STATUS_CHOICES
+    name = models.CharField("Название проекта", max_length=PROJECT_NAME_MAX_LENGTH)
     description = models.TextField("Описание", blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -13,8 +22,10 @@ class Project(models.Model):
         verbose_name="Автор",
     )
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
-    github_url = models.URLField("Ссылка на GitHub", blank=True)
-    status = models.CharField("Статус", max_length=6, choices=STATUS_CHOICES, default="open")
+    github_url = models.URLField("Ссылка на GitHub", blank=True, max_length=URL_MAX_LENGTH)
+    status = models.CharField(
+        "Статус", max_length=PROJECT_STATUS_MAX_LENGTH, choices=STATUS_CHOICES, default=PROJECT_OPEN
+    )
     participants = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name="participated_projects",
@@ -36,3 +47,6 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse("projects:project_detail", kwargs={"project_id": self.pk})

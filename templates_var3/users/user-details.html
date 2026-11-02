@@ -14,7 +14,7 @@
 <div class="profile-container">
     <div class="profile-header">
         <div class="profile-info">
-            {% include "includes/avatar.html" with polz=user klass="profile-avatar" only %}
+            {% include "includes/avatar.html" with avatar_user=user avatar_class="profile-avatar" only %}
             <div class="profile-details">
                 <h2 class="profile-name">{{ user.name }} {{ user.surname }}</h2>
                 <p class="profile-description">
@@ -77,15 +77,15 @@
                 </div>
                 <div class="collapsed-project-card-footer">
                     <p class="project-date">{{ project.created_at|date:"d.m.Y" }}</p>
-                    {% with kol=project.participants.count %}
+                    {% with participant_count=project.participants.count %}
                     <div class="project-participants">
                         {% include 'includes/svg/participants.html' %}
-                        {{ kol }}
-                        {% if kol|add:'-11'|divisibleby:100 or kol|add:'-12'|divisibleby:100 or kol|add:'-13'|divisibleby:100 or kol|add:'-14'|divisibleby:100 %}
+                        {{ participant_count }}
+                        {% if participant_count|add:'-11'|divisibleby:100 or participant_count|add:'-12'|divisibleby:100 or participant_count|add:'-13'|divisibleby:100 or participant_count|add:'-14'|divisibleby:100 %}
                             участников
-                        {% elif kol|add:'-1'|divisibleby:10 %}
+                        {% elif participant_count|add:'-1'|divisibleby:10 %}
                             участник
-                        {% elif kol|add:'-2'|divisibleby:10 or kol|add:'-3'|divisibleby:10 or kol|add:'-4'|divisibleby:10 %}
+                        {% elif participant_count|add:'-2'|divisibleby:10 or participant_count|add:'-3'|divisibleby:10 or participant_count|add:'-4'|divisibleby:10 %}
                             участника
                         {% else %}
                             участников

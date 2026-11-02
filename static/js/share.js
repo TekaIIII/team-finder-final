@@ -1,24 +1,24 @@
-document.addEventListener("click", async sob => {
-  const btn = sob.target.closest(".share-button");
-  if (!btn) return;
-  sob.preventDefault();
-  const adr = new URL(btn.dataset.url || window.location.href, window.location.origin);
-  if (/^\/(users|projects)\/[0-9]+$/.test(adr.pathname)) {
-    adr.pathname += "/";
+document.addEventListener("click", async event => {
+  const button = event.target.closest(".share-button");
+  if (!button) return;
+  event.preventDefault();
+  const url = new URL(button.dataset.url || window.location.href, window.location.origin);
+  if (/^\/(users|projects)\/[0-9]+$/.test(url.pathname)) {
+    url.pathname += "/";
   }
-  const ssyl = adr.href;
+  const shareUrl = url.href;
   try {
     if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
-      window.prompt("Скопируйте ссылку:", ssyl);
+      window.prompt("Скопируйте ссылку:", shareUrl);
       return;
     }
-    await navigator.clipboard.writeText(ssyl);
+    await navigator.clipboard.writeText(shareUrl);
     if (window.toast) {
       window.toast("Ссылка скопирована");
     } else {
       window.alert("Ссылка скопирована");
     }
   } catch {
-    window.prompt("Скопируйте ссылку:", ssyl);
+    window.prompt("Скопируйте ссылку:", shareUrl);
   }
 });

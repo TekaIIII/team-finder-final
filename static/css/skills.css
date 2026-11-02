@@ -38,3 +38,7 @@
 .skill-suggestions li:hover { background:#eee; }
 
 .skill-suggestions li.create-new { font-style:italic; }
+
+.add-skill-btn.hidden {
+    display: none;
+}

@@ -32,7 +32,7 @@
           </a>
 
           <a class="user-menu nav-link">
-            {% include "includes/avatar.html" with polz=request.user klass="avatar" only %}
+            {% include "includes/avatar.html" with avatar_user=request.user avatar_class="avatar" only %}
 
             <span class="username">
               {{ request.user.name }} {{ request.user.surname }}

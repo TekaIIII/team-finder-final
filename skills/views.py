@@ -1,4 +1,5 @@
 import json
+from http import HTTPStatus
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -6,6 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
 
+from common.constants import SKILL_SUGGESTIONS_LIMIT
 from projects.models import Project
 
 from .forms import SkillAddForm
@@ -13,63 +15,71 @@ from .models import Skill
 
 
 @require_GET
-def poisk_nav(zap):
+def skill_list(request):
     """Ограничивает подсказки в SQL до загрузки результата."""
-    q = zap.GET.get("q", "").strip()
-    navyki = Skill.objects.filter(name__istartswith=q).order_by("name").values("id", "name")[:10]
-    return JsonResponse(list(navyki), safe=False)
+    query = request.GET.get("q", "").strip()
+    skills = (
+        Skill.objects.filter(name__istartswith=query)
+        .order_by("name")
+        .values("id", "name")[:SKILL_SUGGESTIONS_LIMIT]
+    )
+    return JsonResponse(list(skills), safe=False)
 
 
-@login_required(login_url="/users/login/")
+@login_required
 @require_POST
 @transaction.atomic
-def dobavit_nav(zap, pk):
-    pr = get_object_or_404(Project.objects.select_for_update(), pk=pk)
-    if pr.owner_id != zap.user.pk:
-        return JsonResponse({"error": "Нет прав на изменение проекта."}, status=403)
+def add_project_skill(request, project_id):
+    project = get_object_or_404(Project.objects.select_for_update(), pk=project_id)
+    if project.owner_id != request.user.pk:
+        return JsonResponse(
+            {"error": "Нет прав на изменение проекта."}, status=HTTPStatus.FORBIDDEN
+        )
     try:
-        dann = json.loads(zap.body)
+        data = json.loads(request.body)
     except ValueError:
-        return JsonResponse({"error": "Некорректный JSON."}, status=400)
-    if not isinstance(dann, dict):
-        return JsonResponse({"error": "Ожидается JSON-объект."}, status=400)
-    frm = SkillAddForm(dann)
-    if not frm.is_valid():
+        return JsonResponse({"error": "Некорректный JSON."}, status=HTTPStatus.BAD_REQUEST)
+    if not isinstance(data, dict):
+        return JsonResponse({"error": "Ожидается JSON-объект."}, status=HTTPStatus.BAD_REQUEST)
+    form = SkillAddForm(data)
+    if not form.is_valid():
         return JsonResponse(
             {
                 "error": "Проверьте название или выбранный навык.",
-                "errors": frm.errors.get_json_data(),
+                "errors": form.errors.get_json_data(),
             },
-            status=400,
+            status=HTTPStatus.BAD_REQUEST,
         )
-    nav = frm.cleaned_data["skill_id"]
-    nov = False
-    if nav is None:
-        nazv = frm.cleaned_data["name"]
-        nav = Skill.objects.filter(name__iexact=nazv).first()
-        if nav is None:
-            nav, nov = Skill.objects.get_or_create(name=nazv)
-    dob = not pr.skills.filter(pk=nav.pk).exists()
-    pr.skills.add(nav)
+    skill = form.cleaned_data["skill_id"]
+    created = False
+    if skill is None:
+        name = form.cleaned_data["name"]
+        skill = Skill.objects.filter(name__iexact=name).first()
+        if skill is None:
+            skill, created = Skill.objects.get_or_create(name=name)
+    added = not project.skills.filter(pk=skill.pk).exists()
+    project.skills.add(skill)
     return JsonResponse(
         {
-            "skill_id": nav.pk,
-            "id": nav.pk,
-            "name": nav.name,
-            "created": nov,
-            "added": dob,
+            "skill_id": skill.pk,
+            "id": skill.pk,
+            "name": skill.name,
+            "created": created,
+            "added": added,
         }
     )
 
 
-@login_required(login_url="/users/login/")
+@login_required
 @require_POST
 @transaction.atomic
-def ubrat_nav(zap, pk, skill_id):
+def remove_project_skill(request, project_id, skill_id):
     """Удаляет связь с проектом, сохраняя общий навык."""
-    pr = get_object_or_404(Project.objects.select_for_update(), pk=pk)
-    if pr.owner_id != zap.user.pk:
-        return JsonResponse({"error": "Нет прав на изменение проекта."}, status=403)
-    nav = get_object_or_404(pr.skills.all(), pk=skill_id)
-    pr.skills.remove(nav)
+    project = get_object_or_404(Project.objects.select_for_update(), pk=project_id)
+    if project.owner_id != request.user.pk:
+        return JsonResponse(
+            {"error": "Нет прав на изменение проекта."}, status=HTTPStatus.FORBIDDEN
+        )
+    skill = get_object_or_404(project.skills.all(), pk=skill_id)
+    project.skills.remove(skill)
     return JsonResponse({"status": "ok", "removed": True})

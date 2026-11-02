@@ -28,29 +28,29 @@
 
     {% if page_obj.object_list %}
       <div class="participants-grid">
-        {% for polz in page_obj %}
+        {% for participant in page_obj %}
           <div class="participant-card">
             <div class="participant-card-header">
-              <a href="/users/{{ polz.id }}/">
-                {% include "includes/avatar.html" with polz=polz klass="participant-avatar" only %}
+              <a href="/users/{{ participant.id }}/">
+                {% include "includes/avatar.html" with avatar_user=participant avatar_class="participant-avatar" only %}
               </a>
             </div>
 
             <div class="participant-info">
               <h3 class="participant-name">
-                <a href="/users/{{ polz.id }}/">
-                  {{ polz.surname }} {{ polz.name }}
+                <a href="/users/{{ participant.id }}/">
+                  {{ participant.surname }} {{ participant.name }}
                 </a>
               </h3>
 
               <p class="participant-role">
-                {{ polz.about|truncatechars:80 }}
+                {{ participant.about|truncatechars:80 }}
               </p>
             </div>
 
             <div class="participant-card-footer">
               <a
-                href="/users/{{ polz.id }}/"
+                href="/users/{{ participant.id }}/"
                 class="white-button"
               >
                 {% include 'includes/svg/eye.html' %}
@@ -72,12 +72,12 @@
             </a>
           {% endif %}
 
-          {% for nom in page_obj.paginator.page_range %}
-            {% if page_obj.number == nom %}
-              <span class="page-btn active">{{ nom }}</span>
+          {% for page_number in page_obj.paginator.page_range %}
+            {% if page_obj.number == page_number %}
+              <span class="page-btn active">{{ page_number }}</span>
             {% else %}
-              <a href="?page={{ nom }}" class="page-btn">
-                {{ nom }}
+              <a href="?page={{ page_number }}" class="page-btn">
+                {{ page_number }}
               </a>
             {% endif %}
           {% endfor %}

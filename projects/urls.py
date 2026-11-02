@@ -1,55 +1,55 @@
 from django.urls import path
 
-from skills import views as nav_obr
+from skills import views as skill_views
 
-from . import views as obr
+from . import views as views
 
 app_name = "projects"
 
 urlpatterns = [
     path(
         "project/list/",
-        obr.spisok_proektov,
+        views.project_list,
         name="project_list",
     ),
     path(
         "projects/create-project/",
-        obr.sozdat_proekt,
+        views.create_project,
         name="create_project",
     ),
     path(
         "projects/skills/",
-        nav_obr.poisk_nav,
+        skill_views.skill_list,
         name="skill_list",
     ),
     path(
-        "projects/<int:pk>/",
-        obr.kartochka_proekta,
+        "projects/<int:project_id>/",
+        views.project_detail,
         name="project_detail",
     ),
     path(
-        "projects/<int:pk>/edit/",
-        obr.pravit_proekt,
+        "projects/<int:project_id>/edit/",
+        views.edit_project,
         name="edit_project",
     ),
     path(
-        "projects/<int:pk>/toggle-participate/",
-        obr.smenit_uchastie,
+        "projects/<int:project_id>/toggle-participate/",
+        views.toggle_participation,
         name="toggle_participate",
     ),
     path(
-        "projects/<int:pk>/complete/",
-        obr.zavershit_proekt,
+        "projects/<int:project_id>/complete/",
+        views.complete_project,
         name="complete_project",
     ),
     path(
-        "projects/<int:pk>/skills/add/",
-        nav_obr.dobavit_nav,
+        "projects/<int:project_id>/skills/add/",
+        skill_views.add_project_skill,
         name="add_project_skill",
     ),
     path(
-        "projects/<int:pk>/skills/<int:skill_id>/remove/",
-        nav_obr.ubrat_nav,
+        "projects/<int:project_id>/skills/<int:skill_id>/remove/",
+        skill_views.remove_project_skill,
         name="remove_project_skill",
     ),
 ]

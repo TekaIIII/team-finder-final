@@ -2,6 +2,8 @@ from pathlib import Path
 
 from decouple import config
 
+from common.constants import PASSWORD_MIN_LENGTH
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Основные настройки.
@@ -9,7 +11,11 @@ SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 
 
 # Подключённые приложения.
@@ -20,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.forms",
     "users.apps.UsersConfig",
     "skills.apps.SkillsConfig",
     "projects.apps.ProjectsConfig",
@@ -50,7 +57,7 @@ ROOT_URLCONF = "team_finder.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / f"templates_var{config('TASK_VERSION', default='3')}"],
+        "DIRS": [BASE_DIR / "templates_var3"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -94,7 +101,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": ("django.contrib.auth.password_validation.MinimumLengthValidator"),
         "OPTIONS": {
-            "min_length": 8,
+            "min_length": PASSWORD_MIN_LENGTH,
         },
     },
     {
@@ -132,3 +139,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # Тип автоматически создаваемого первичного ключа.
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGIN_URL = "users:login"
+
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"

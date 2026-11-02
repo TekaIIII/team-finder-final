@@ -4,7 +4,7 @@
     <div class="project-card-header-title">
         <div class="project-card-header">
             <div class="project-owner-grid">
-                {% include "includes/avatar.html" with polz=project.owner klass="avatar" only %}
+                {% include "includes/avatar.html" with avatar_user=project.owner avatar_class="avatar" only %}
                 <div class="project-owner">
                     <a href="/users/{{ project.owner.id }}">{{ project.owner.name }} {{ project.owner.surname }}</a>
                     <small class="project-date">{{ project.created_at|date:"d.m.Y" }}</small>
@@ -27,15 +27,15 @@
                 {{ project.status }}
             {% endif %}
         </span>
-        {% with kol=project.participants.count %}
+        {% with participant_count=project.participants.count %}
         <div class="project-participants">
             {% include 'includes/svg/participants.html' %}
-            {{ kol }}
-            {% if kol|add:'-11'|divisibleby:100 or kol|add:'-12'|divisibleby:100 or kol|add:'-13'|divisibleby:100 or kol|add:'-14'|divisibleby:100 %}
+            {{ participant_count }}
+            {% if participant_count|add:'-11'|divisibleby:100 or participant_count|add:'-12'|divisibleby:100 or participant_count|add:'-13'|divisibleby:100 or participant_count|add:'-14'|divisibleby:100 %}
                 участников
-            {% elif kol|add:'-1'|divisibleby:10 %}
+            {% elif participant_count|add:'-1'|divisibleby:10 %}
                 участник
-            {% elif kol|add:'-2'|divisibleby:10 or kol|add:'-3'|divisibleby:10 or kol|add:'-4'|divisibleby:10 %}
+            {% elif participant_count|add:'-2'|divisibleby:10 or participant_count|add:'-3'|divisibleby:10 or participant_count|add:'-4'|divisibleby:10 %}
                 участника
             {% else %}
                 участников

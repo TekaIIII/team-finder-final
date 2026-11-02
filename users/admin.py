@@ -3,10 +3,11 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-from common.proverki import github_adres
+from common.constants import URL_MAX_LENGTH
+from common.validators import validate_github_url
 
-from .forms import svobodnaya_pochta, svobodny_nom
 from .models import User
+from .validators import validate_unique_email, validate_unique_phone
 
 
 class AdminUserCreationForm(UserCreationForm):
@@ -15,15 +16,16 @@ class AdminUserCreationForm(UserCreationForm):
         fields = ("email", "name", "surname")
 
     def clean_email(self):
-        return svobodnaya_pochta(self.cleaned_data["email"], self.instance.pk)
+        return validate_unique_email(self.cleaned_data["email"], self.instance.pk)
 
 
 class AdminUserChangeForm(UserChangeForm):
     github_url = forms.URLField(
         label="Ссылка на GitHub",
+        max_length=URL_MAX_LENGTH,
         required=False,
         assume_scheme="https",
-        validators=[github_adres],
+        validators=[validate_github_url],
     )
 
     class Meta(UserChangeForm.Meta):
@@ -31,12 +33,12 @@ class AdminUserChangeForm(UserChangeForm):
         fields = "__all__"
 
     def clean_email(self):
-        return svobodnaya_pochta(self.cleaned_data["email"], self.instance.pk)
+        return validate_unique_email(self.cleaned_data["email"], self.instance.pk)
 
     def clean_phone(self):
-        nom = self.cleaned_data.get("phone")
-        if nom:
-            return svobodny_nom(nom, self.instance.pk)
+        number = self.cleaned_data.get("phone")
+        if number:
+            return validate_unique_phone(number, self.instance.pk)
         return None
 
 

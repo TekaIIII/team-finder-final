@@ -37,9 +37,9 @@
 
     {% if form.errors %}
     <div class="form-errors">
-      {% for pole, oshibki in form.errors.items %}
-      {% for err in oshibki %}
-      <p>{{ err }}</p>
+      {% for field, errors in form.errors.items %}
+      {% for error in errors %}
+      <p>{{ error }}</p>
       {% endfor %}
       {% endfor %}
     </div>

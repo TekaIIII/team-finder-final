@@ -2,71 +2,71 @@
 (function () {
   // CSRF cookie utility
   if (!window.getCookie) {
-    window.getCookie = function (imya) {
-      let znach = null;
+    window.getCookie = function (name) {
+      let value = null;
       if (document.cookie && document.cookie !== "") {
-        const chasti = document.cookie.split(";");
-        for (let chast of chasti) {
-          chast = chast.trim();
-          if (chast.startsWith(imya + "=")) {
-            znach = decodeURIComponent(chast.substring(imya.length + 1));
+        const parts = document.cookie.split(";");
+        for (let part of parts) {
+          part = part.trim();
+          if (part.startsWith(name + "=")) {
+            value = decodeURIComponent(part.substring(name.length + 1));
             break;
           }
         }
       }
-      return znach;
+      return value;
     };
   }
 
   // Minimal toast notifications
   if (!window.toast) {
-    function poluchitObl() {
-      let c = document.getElementById("tf-toast-container");
-      if (c) return c;
-      c = document.createElement("div");
-      c.id = "tf-toast-container";
-      c.style.position = "fixed";
-      c.style.left = "50%";
-      c.style.top = "50%";
-      c.style.transform = "translate(-50%, -50%)";
-      c.style.display = "flex";
-      c.style.flexDirection = "column";
-      c.style.alignItems = "center";
-      c.style.gap = "8px";
-      c.style.zIndex = "2147483647";
-      document.body.appendChild(c);
-      return c;
+    function getContainer() {
+      let container = document.getElementById("tf-toast-container");
+      if (container) return container;
+      container = document.createElement("div");
+      container.id = "tf-toast-container";
+      container.style.position = "fixed";
+      container.style.left = "50%";
+      container.style.top = "50%";
+      container.style.transform = "translate(-50%, -50%)";
+      container.style.display = "flex";
+      container.style.flexDirection = "column";
+      container.style.alignItems = "center";
+      container.style.gap = "8px";
+      container.style.zIndex = "2147483647";
+      document.body.appendChild(container);
+      return container;
     }
-    window.toast = function (tekst, param = {}) {
+    window.toast = function (message, options = {}) {
       const {
-        type: tip = "info",
-        duration: ms = 2200
-      } = param;
-      const obl = poluchitObl();
-      const el = document.createElement("div");
-      el.textContent = tekst;
-      el.style.maxWidth = "90vw";
-      el.style.background = tip === "error" ? "rgba(220, 38, 38, 0.95)" : "rgba(17,17,17,0.92)";
-      el.style.color = "#fff";
-      el.style.padding = "12px 16px";
-      el.style.borderRadius = "8px";
-      el.style.boxShadow = "0 6px 20px rgba(0,0,0,0.25)";
-      el.style.fontSize = "14px";
-      el.style.lineHeight = "1.35";
-      el.style.wordBreak = "break-all";
-      el.style.textAlign = "center";
-      el.style.opacity = "0";
-      el.style.transition = "opacity 180ms ease";
-      obl.appendChild(el);
+        type = "info",
+        duration = 2200
+      } = options;
+      const container = getContainer();
+      const toastElement = document.createElement("div");
+      toastElement.textContent = message;
+      toastElement.style.maxWidth = "90vw";
+      toastElement.style.background = type === "error" ? "rgba(220, 38, 38, 0.95)" : "rgba(17,17,17,0.92)";
+      toastElement.style.color = "#fff";
+      toastElement.style.padding = "12px 16px";
+      toastElement.style.borderRadius = "8px";
+      toastElement.style.boxShadow = "0 6px 20px rgba(0,0,0,0.25)";
+      toastElement.style.fontSize = "14px";
+      toastElement.style.lineHeight = "1.35";
+      toastElement.style.wordBreak = "break-all";
+      toastElement.style.textAlign = "center";
+      toastElement.style.opacity = "0";
+      toastElement.style.transition = "opacity 180ms ease";
+      container.appendChild(toastElement);
       requestAnimationFrame(() => {
-        el.style.opacity = "1";
+        toastElement.style.opacity = "1";
       });
       setTimeout(() => {
-        el.style.opacity = "0";
+        toastElement.style.opacity = "0";
         setTimeout(() => {
-          el.remove();
+          toastElement.remove();
         }, 200);
-      }, Math.max(1200, ms));
+      }, Math.max(1200, duration));
     };
   }
 })();

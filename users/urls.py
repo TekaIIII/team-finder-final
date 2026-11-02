@@ -1,43 +1,43 @@
 from django.urls import path
 
-from . import views as obr
+from . import views as views
 
 app_name = "users"
 
 urlpatterns = [
     path(
         "list/",
-        obr.spisok_polz,
+        views.user_list,
         name="user_list",
     ),
     path(
         "register/",
-        obr.registraciya,
+        views.register,
         name="register",
     ),
     path(
         "login/",
-        obr.vhod,
+        views.login_view,
         name="login",
     ),
     path(
         "logout/",
-        obr.vyhod,
+        views.logout_view,
         name="logout",
     ),
     path(
         "edit-profile/",
-        obr.pravka_profilya,
+        views.edit_profile,
         name="edit_profile",
     ),
     path(
         "change-password/",
-        obr.smena_parolya,
+        views.change_password,
         name="change_password",
     ),
     path(
-        "<int:pk>/",
-        obr.profil_polz,
+        "<int:user_id>/",
+        views.user_profile,
         name="profile",
     ),
 ]

@@ -11,254 +11,250 @@ from PIL import Image, ImageChops
 from projects.forms import ProjectForm
 
 from .admin import AdminUserCreationForm
-from .avatars import sdelat_avu
+from .avatars import create_avatar
 from .forms import ProfileForm
 
 
-@override_settings(
-    PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"]
-)
-class PolzProverki(TestCase):
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class UserTests(TestCase):
     def setUp(self):
-        papka = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, papka)
+        directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, directory)
 
-        nstr = override_settings(MEDIA_ROOT=papka)
-        nstr.enable()
-        self.addCleanup(nstr.disable)
+        settings_override = override_settings(MEDIA_ROOT=directory)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
 
-        self.par = "ProverkaAccount!975"
-        self.usr = get_user_model().objects.create_user(
+        self.password = "ProverkaAccount!975"
+        self.user = get_user_model().objects.create_user(
             "anna@example.com",
-            self.par,
+            self.password,
             name="Анна",
             surname="Тест",
         )
 
-    def dannye(self, **dop):
-        d = {
+    def profile_data(self, **kwargs):
+        data = {
             "name": "Анна",
             "surname": "Тест",
-            "email": self.usr.email,
+            "email": self.user.email,
             "phone": "89001234567",
             "about": "Описание профиля",
             "github_url": "",
         }
-        d.update(dop)
-        return d
+        data.update(kwargs)
+        return data
 
-    def test_ava_vosproizvodima(self):
-        perv = sdelat_avu("Анна", "anna@example.com").read()
-        vtor = sdelat_avu("Анна", "ANNA@EXAMPLE.COM").read()
+    def test_avatar_is_reproducible(self):
+        first_avatar = create_avatar("Анна", "anna@example.com").read()
+        second_avatar = create_avatar("Анна", "ANNA@EXAMPLE.COM").read()
 
-        self.assertEqual(perv, vtor)
-        self.assertTrue(perv.startswith(b"\x89PNG"))
+        self.assertEqual(first_avatar, second_avatar)
+        self.assertTrue(first_avatar.startswith(b"\x89PNG"))
 
-    def test_tel_s_vosmerki_sovpadaet_s_plus_sem(self):
-        drug = get_user_model().objects.create_user(
+    def test_phone_formats_are_equivalent(self):
+        other_user = get_user_model().objects.create_user(
             "ivan@example.com",
-            self.par,
+            self.password,
             name="Иван",
             surname="Тест",
             phone="89001234567",
         )
 
-        frm = ProfileForm(
-            self.dannye(phone="+79001234567"),
-            instance=self.usr,
+        form = ProfileForm(
+            self.profile_data(phone="+79001234567"),
+            instance=self.user,
         )
-        self.assertFalse(frm.is_valid())
-        self.assertIn("phone", frm.errors)
+        self.assertFalse(form.is_valid())
+        self.assertIn("phone", form.errors)
 
-        drug.phone = None
-        drug.save()
+        other_user.phone = None
+        other_user.save()
 
-        frm = ProfileForm(self.dannye(), instance=self.usr)
-        self.assertTrue(frm.is_valid(), frm.errors)
-        self.assertEqual(frm.cleaned_data["phone"], "+79001234567")
+        form = ProfileForm(self.profile_data(), instance=self.user)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["phone"], "+79001234567")
 
-    def test_github_odinakovo_proveryaetsya_v_formah(self):
-        for adr in [
+    def test_forms_validate_github_consistently(self):
+        for url in [
             "https://example.com",
             "https://github.com.evil.example/x",
         ]:
-            with self.subTest(adr=adr):
-                frm = ProfileForm(
-                    self.dannye(github_url=adr),
-                    instance=self.usr,
+            with self.subTest(url=url):
+                form = ProfileForm(
+                    self.profile_data(github_url=url),
+                    instance=self.user,
                 )
-                self.assertFalse(frm.is_valid())
-                self.assertIn("github_url", frm.errors)
+                self.assertFalse(form.is_valid())
+                self.assertIn("github_url", form.errors)
 
-                pr_frm = ProjectForm({
-                    "name": "Тест",
-                    "status": "open",
-                    "github_url": adr,
-                })
-                self.assertFalse(pr_frm.is_valid())
-                self.assertIn("github_url", pr_frm.errors)
+                project_form = ProjectForm(
+                    {
+                        "name": "Тест",
+                        "status": "open",
+                        "github_url": url,
+                    }
+                )
+                self.assertFalse(project_form.is_valid())
+                self.assertIn("github_url", project_form.errors)
 
-    def test_admin_ne_prinimaet_povtor_pochty_drugim_registrom(self):
-        frm = AdminUserCreationForm({
-            "email": self.usr.email.upper(),
-            "name": "Иван",
-            "surname": "Новый",
-            "password1": self.par,
-            "password2": self.par,
-        })
+    def test_admin_rejects_case_insensitive_duplicate_email(self):
+        form = AdminUserCreationForm(
+            {
+                "email": self.user.email.upper(),
+                "name": "Иван",
+                "surname": "Новый",
+                "password1": self.password,
+                "password2": self.password,
+            }
+        )
 
-        self.assertFalse(frm.is_valid())
-        self.assertIn("email", frm.errors)
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
 
-    def test_pravka_vsegda_otnositsya_k_tekushchemu_polz(self):
-        drug = get_user_model().objects.create_user(
+    def test_edit_profile_always_updates_current_user(self):
+        other_user = get_user_model().objects.create_user(
             "other@example.com",
-            self.par,
+            self.password,
             name="Иван",
             surname="Петров",
         )
 
-        self.client.force_login(self.usr)
-        otv = self.client.post(
+        self.client.force_login(self.user)
+        response = self.client.post(
             "/users/edit-profile/",
-            self.dannye(
-                id=drug.pk,
+            self.profile_data(
+                id=other_user.pk,
                 surname="Изменена",
                 is_staff=True,
             ),
         )
 
-        self.assertEqual(otv.status_code, 302)
+        self.assertEqual(response.status_code, 302)
 
-        self.usr.refresh_from_db()
-        drug.refresh_from_db()
+        self.user.refresh_from_db()
+        other_user.refresh_from_db()
 
-        self.assertEqual(self.usr.surname, "Изменена")
-        self.assertFalse(self.usr.is_staff)
-        self.assertEqual(drug.surname, "Петров")
+        self.assertEqual(self.user.surname, "Изменена")
+        self.assertFalse(self.user.is_staff)
+        self.assertEqual(other_user.surname, "Петров")
 
-    def test_smena_pochty_i_vhod_s_novoy(self):
-        self.client.force_login(self.usr)
-        otv = self.client.post(
+    def test_login_after_email_change(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
             "/users/edit-profile/",
-            self.dannye(email="NEW@EXAMPLE.COM"),
+            self.profile_data(email="NEW@EXAMPLE.COM"),
         )
 
-        self.assertEqual(otv.status_code, 302)
+        self.assertEqual(response.status_code, 302)
 
-        self.usr.refresh_from_db()
-        self.assertEqual(self.usr.email, "new@example.com")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "new@example.com")
 
         self.client.logout()
 
         self.assertTrue(
             self.client.login(
                 email="new@example.com",
-                password=self.par,
+                password=self.password,
             )
         )
         self.assertFalse(
             self.client.login(
                 email="anna@example.com",
-                password=self.par,
+                password=self.password,
             )
         )
 
-    def test_pochta_chuzhogo_profilya_ne_podhodit(self):
+    def test_cannot_use_another_users_email(self):
         get_user_model().objects.create_user(
             "other@example.com",
-            self.par,
+            self.password,
             name="Иван",
             surname="Тест",
         )
 
-        self.client.force_login(self.usr)
-        otv = self.client.post(
+        self.client.force_login(self.user)
+        response = self.client.post(
             "/users/edit-profile/",
-            self.dannye(email="OTHER@EXAMPLE.COM"),
+            self.profile_data(email="OTHER@EXAMPLE.COM"),
         )
 
-        self.assertEqual(otv.status_code, 200)
-        self.assertIn("email", otv.context["form"].errors)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("email", response.context["form"].errors)
 
-        self.usr.refresh_from_db()
-        self.assertEqual(self.usr.email, "anna@example.com")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "anna@example.com")
 
-    def test_kirillicheskie_bukvy_ne_odinakovye_kvadraty(self):
-        perv = Image.open(
-            BytesIO(sdelat_avu("Анна", "test@example.com").read())
-        )
-        vtor = Image.open(
-            BytesIO(sdelat_avu("Яна", "test@example.com").read())
-        )
+    def test_cyrillic_letters_are_distinct(self):
+        first_avatar = Image.open(BytesIO(create_avatar("Анна", "test@example.com").read()))
+        second_avatar = Image.open(BytesIO(create_avatar("Яна", "test@example.com").read()))
 
-        self.assertIsNotNone(
-            ImageChops.difference(perv, vtor).getbbox()
-        )
+        self.assertIsNotNone(ImageChops.difference(first_avatar, second_avatar).getbbox())
 
-    def test_zagruzka_avy_srazu_sohranyaet_novuyu_ssylku(self):
-        self.client.force_login(self.usr)
-        ssylki = []
+    def test_avatar_upload_changes_url(self):
+        self.client.force_login(self.user)
+        urls = []
 
-        for cvet in ["blue", "red"]:
-            buf = BytesIO()
-            Image.new("RGB", (20, 20), color=cvet).save(
-                buf,
+        for color in ["blue", "red"]:
+            buffer = BytesIO()
+            Image.new("RGB", (20, 20), color=color).save(
+                buffer,
                 format="PNG",
             )
 
-            fail = SimpleUploadedFile(
+            uploaded_file = SimpleUploadedFile(
                 "avatar.png",
-                buf.getvalue(),
+                buffer.getvalue(),
                 content_type="image/png",
             )
-            otv = self.client.post(
+            response = self.client.post(
                 "/users/edit-profile/",
-                self.dannye(avatar=fail),
+                self.profile_data(avatar=uploaded_file),
                 follow=True,
             )
 
-            self.assertEqual(otv.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-            self.usr.refresh_from_db()
-            self.assertContains(otv, self.usr.avatar.url)
+            self.user.refresh_from_db()
+            self.assertContains(response, self.user.avatar.url)
 
-            with self.usr.avatar.open("rb") as ava:
+            with self.user.avatar.open("rb") as avatar:
                 self.assertEqual(
-                    Image.open(ava).getpixel((0, 0)),
-                    Image.new("RGB", (1, 1), cvet).getpixel((0, 0)),
+                    Image.open(avatar).getpixel((0, 0)),
+                    Image.new("RGB", (1, 1), color).getpixel((0, 0)),
                 )
 
-            ssylki.append(self.usr.avatar.url)
+            urls.append(self.user.avatar.url)
 
-        self.assertNotEqual(ssylki[0], ssylki[1])
+        self.assertNotEqual(urls[0], urls[1])
 
-    def test_mozhno_vernutsya_k_bukve_imeni(self):
-        self.client.force_login(self.usr)
-        star = self.usr.avatar.name
+    def test_avatar_can_be_reset_to_initial(self):
+        self.client.force_login(self.user)
+        old_avatar_name = self.user.avatar.name
 
-        otv = self.client.post(
+        response = self.client.post(
             "/users/edit-profile/",
-            self.dannye(sbros_avy="on", name="Яна"),
+            self.profile_data(**{"avatar-clear": "on"}, name="Яна"),
         )
 
-        self.assertEqual(otv.status_code, 302)
+        self.assertEqual(response.status_code, 302)
 
-        self.usr.refresh_from_db()
-        self.assertNotEqual(self.usr.avatar.name, star)
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.avatar.name, old_avatar_name)
 
-        with self.usr.avatar.open("rb") as ava:
+        with self.user.avatar.open("rb") as avatar:
             self.assertEqual(
-                ava.read(),
-                sdelat_avu("Яна", self.usr.email).read(),
+                avatar.read(),
+                create_avatar("Яна", self.user.email).read(),
             )
 
-    def test_shablon_ostavlyaet_bukvu_pri_otsutstvii_fayla(self):
-        self.usr.avatar = ""
+    def test_missing_avatar_is_rendered_as_initial(self):
+        self.user.avatar = ""
 
         html = render_to_string(
             "includes/avatar.html",
-            {"polz": self.usr, "klass": "avatar"},
+            {"avatar_user": self.user, "avatar_class": "avatar"},
         )
 
         self.assertInHTML(
@@ -267,11 +263,11 @@ class PolzProverki(TestCase):
         )
         self.assertNotIn("src=", html)
 
-        self.usr.avatar = "avatars/missing.png"
+        self.user.avatar = "avatars/missing.png"
 
         html = render_to_string(
             "includes/avatar.html",
-            {"polz": self.usr, "klass": "avatar"},
+            {"avatar_user": self.user, "avatar_class": "avatar"},
         )
 
         self.assertInHTML(

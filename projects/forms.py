@@ -1,6 +1,7 @@
 from django import forms
 
-from common.proverki import github_adres
+from common.constants import URL_MAX_LENGTH
+from common.validators import validate_github_url
 
 from .models import Project
 
@@ -8,14 +9,10 @@ from .models import Project
 class ProjectForm(forms.ModelForm):
     github_url = forms.URLField(
         label="Ссылка на GitHub",
+        max_length=URL_MAX_LENGTH,
         required=False,
         assume_scheme="https",
-        validators=[github_adres],
-    )
-    status = forms.ChoiceField(
-        label="Статус",
-        choices=(("open", "Открыт"), ("closed", "Закрыт")),
-        initial="open",
+        validators=[validate_github_url],
     )
 
     class Meta:

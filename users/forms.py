@@ -5,32 +5,17 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
-from common.proverki import github_adres, norm_tel
+from common.constants import PASSWORD_MIN_LENGTH, URL_MAX_LENGTH
+from common.validators import validate_github_url
 
 from .models import User
-
-
-def svobodnaya_pochta(adr, pk=None):
-    adr = adr.strip().lower()
-    if User.objects.filter(email__iexact=adr).exclude(pk=pk).exists():
-        raise forms.ValidationError("Этот email уже зарегистрирован.")
-    return adr
-
-
-def svobodny_nom(nom, pk=None):
-    nom = norm_tel(nom)
-    nom_s_vosm = "8" + nom[-10:]
-    polz = User.objects.filter(phone__in=[nom, nom_s_vosm])
-    zanyat = polz.exclude(pk=pk).exists()
-    if zanyat:
-        raise forms.ValidationError("Этот телефон уже используется.")
-    return nom
+from .validators import validate_unique_email, validate_unique_phone
 
 
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(
         label="Пароль",
-        min_length=8,
+        min_length=PASSWORD_MIN_LENGTH,
         strip=False,
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
@@ -40,24 +25,24 @@ class RegistrationForm(forms.ModelForm):
         fields = ("name", "surname", "email", "password")
 
     def clean_email(self):
-        return svobodnaya_pochta(self.cleaned_data["email"], self.instance.pk)
+        return validate_unique_email(self.cleaned_data["email"], self.instance.pk)
 
     def clean_password(self):
-        par = self.cleaned_data["password"]
-        kand = User(
+        password = self.cleaned_data["password"]
+        candidate = User(
             email=self.cleaned_data.get("email", ""),
             name=self.cleaned_data.get("name", ""),
             surname=self.cleaned_data.get("surname", ""),
         )
-        validate_password(par, user=kand)
-        return par
+        validate_password(password, user=candidate)
+        return password
 
     def save(self, commit=True):
-        usr = super().save(commit=False)
-        usr.set_password(self.cleaned_data["password"])
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password"])
         if commit:
-            usr.save()
-        return usr
+            user.save()
+        return user
 
 
 class LoginForm(forms.Form):
@@ -68,66 +53,77 @@ class LoginForm(forms.Form):
         widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
     )
 
-    def __init__(self, *poz, request=None, **dop):
-        super().__init__(*poz, **dop)
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.request = request
         self.user = None
 
     def clean(self):
-        chist = super().clean()
-        pochta = chist.get("email")
-        par = chist.get("password")
-        if pochta and par:
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email")
+        password = cleaned_data.get("password")
+        if email and password:
             self.user = authenticate(
                 request=self.request,
-                email=pochta.strip().lower(),
-                password=par,
+                email=email.strip().lower(),
+                password=password,
             )
             if self.user is None:
                 raise forms.ValidationError("Неверный email или пароль")
-        return chist
+        return cleaned_data
+
+
+class AvatarInput(forms.ClearableFileInput):
+    template_name = "users/widgets/avatar_input.html"
+    clear_checkbox_label = "Использовать букву имени"
 
 
 class ProfileForm(forms.ModelForm):
-    sbros_avy = forms.BooleanField(required=False, label="Использовать букву имени")
-    phone = forms.CharField(
-        label="Телефон",
-        max_length=12,
-        widget=forms.TextInput(attrs={"placeholder": "+79001234567"}),
-    )
     github_url = forms.URLField(
         label="Ссылка на GitHub",
+        max_length=URL_MAX_LENGTH,
         required=False,
         assume_scheme="https",
-        validators=[github_adres],
+        validators=[validate_github_url],
     )
 
     class Meta:
         model = User
         fields = ("name", "surname", "email", "avatar", "about", "phone", "github_url")
         widgets = {
-            "avatar": forms.FileInput(attrs={"accept": "image/*"}),
+            "avatar": AvatarInput(attrs={"accept": "image/*"}),
+            "phone": forms.TextInput(attrs={"placeholder": "+79001234567"}),
             "about": forms.Textarea(attrs={"rows": 4}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["phone"].required = True
+        self.fields["avatar"].required = False
+        self.fields["avatar"].widget.is_required = False
+        self.clear_avatar = False
+
     def clean_email(self):
-        return svobodnaya_pochta(self.cleaned_data["email"], self.instance.pk)
+        return validate_unique_email(self.cleaned_data["email"], self.instance.pk)
 
     def clean_phone(self):
-        return svobodny_nom(self.cleaned_data["phone"], self.instance.pk)
+        return validate_unique_phone(self.cleaned_data["phone"], self.instance.pk)
 
     def clean_avatar(self):
-        ava = self.cleaned_data.get("avatar")
-        if self.files.get("avatar") and ava:
-            ras = Path(ava.name).suffix.lower()
-            ava.name = f"{uuid4().hex}{ras}"
-        return ava
+        avatar = self.cleaned_data.get("avatar")
+        if avatar is False:
+            self.clear_avatar = True
+            return self.instance.avatar
+        if self.files.get("avatar") and avatar:
+            extension = Path(avatar.name).suffix.lower()
+            avatar.name = f"{uuid4().hex}{extension}"
+        return avatar
 
     def save(self, commit=True):
-        usr = super().save(commit=False)
-        if self.cleaned_data.get("sbros_avy") and not self.files.get("avatar"):
-            usr.dobavit_avu()
+        user = super().save(commit=False)
+        if self.clear_avatar:
+            user.generate_avatar()
         if commit:
-            usr.save()
+            user.save()
             self.save_m2m()
-        return usr
+        return user

@@ -1,166 +1,166 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const obl = document.getElementById("skills-container");
-  const dobBtn = document.getElementById("add-skill-btn");
-  const obert = document.getElementById("skill-input-wrapper");
-  const vvod = document.getElementById("skill-input");
-  const podsk = document.getElementById("skill-suggestions");
-  if (!obl || !dobBtn || !obert || !vvod || !podsk) {
+  const container = document.getElementById("skills-container");
+  const addButton = document.getElementById("add-skill-btn");
+  const inputWrapper = document.getElementById("skill-input-wrapper");
+  const input = document.getElementById("skill-input");
+  const suggestions = document.getElementById("skill-suggestions");
+  if (!container || !addButton || !inputWrapper || !input || !suggestions) {
     return;
   }
-  const prId = obl.dataset.projectId;
-  const baza = `/projects/${prId}/skills/`;
-  let taymer;
-  let rev = 0;
-  let dobavlyaem = false;
-  vvod.maxLength = 124;
-  function pokazatOsh(err) {
+  const projectId = container.dataset.projectId;
+  const baseUrl = `/projects/${projectId}/skills/`;
+  let timer;
+  let requestVersion = 0;
+  let isAdding = false;
+  input.maxLength = 124;
+  function showError(error) {
     if (window.toast) {
-      window.toast(err.message, {
+      window.toast(error.message, {
         type: "error"
       });
     } else {
-      window.alert(err.message);
+      window.alert(error.message);
     }
   }
-  async function poslat(adr, telo = {}) {
-    const otv = await fetch(adr, {
+  async function sendPost(url, body = {}) {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": window.getCookie("csrftoken")
       },
-      body: JSON.stringify(telo)
+      body: JSON.stringify(body)
     });
-    if (otv.redirected) {
+    if (response.redirected) {
       throw new Error("Войдите в аккаунт.");
     }
-    const dann = await otv.json().catch(() => ({}));
-    if (!otv.ok) {
-      throw new Error(dann.error || "Не удалось выполнить запрос.");
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "Не удалось выполнить запрос.");
     }
-    return dann;
+    return data;
   }
-  function skrytVvod() {
-    clearTimeout(taymer);
-    rev += 1;
-    obert.classList.add("hidden");
-    podsk.classList.add("hidden");
-    podsk.replaceChildren();
-    dobBtn.classList.remove("hidden");
+  function hideInput() {
+    clearTimeout(timer);
+    requestVersion += 1;
+    inputWrapper.classList.add("hidden");
+    suggestions.classList.add("hidden");
+    suggestions.replaceChildren();
+    addButton.classList.remove("hidden");
   }
-  async function dobavitNav(telo) {
-    if (dobavlyaem) return;
-    dobavlyaem = true;
-    vvod.disabled = true;
+  async function addSkill(body) {
+    if (isAdding) return;
+    isAdding = true;
+    input.disabled = true;
     try {
-      const nav = await poslat(`${baza}add/`, telo);
-      if (!obl.querySelector(`.skill-chip[data-id="${nav.id}"]`)) {
-        const teg = document.createElement("span");
-        teg.className = "skill-chip";
-        teg.dataset.id = nav.id;
-        teg.textContent = `${nav.name} `;
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "remove-skill-btn";
-        btn.textContent = "×";
-        btn.setAttribute("aria-label", `Удалить ${nav.name}`);
-        teg.appendChild(btn);
-        obl.insertBefore(teg, dobBtn);
-        obl.querySelector(".skill-empty")?.remove();
+      const skill = await sendPost(`${baseUrl}add/`, body);
+      if (!container.querySelector(`.skill-chip[data-id="${skill.id}"]`)) {
+        const chip = document.createElement("span");
+        chip.className = "skill-chip";
+        chip.dataset.id = skill.id;
+        chip.textContent = `${skill.name} `;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "remove-skill-btn";
+        button.textContent = "×";
+        button.setAttribute("aria-label", `Удалить ${skill.name}`);
+        chip.appendChild(button);
+        container.insertBefore(chip, addButton);
+        container.querySelector(".skill-empty")?.remove();
       }
-      vvod.value = "";
-      skrytVvod();
-    } catch (err) {
-      pokazatOsh(err);
+      input.value = "";
+      hideInput();
+    } catch (error) {
+      showError(error);
     } finally {
-      dobavlyaem = false;
-      vvod.disabled = false;
+      isAdding = false;
+      input.disabled = false;
     }
   }
-  dobBtn.addEventListener("click", () => {
-    dobBtn.classList.add("hidden");
-    obert.classList.remove("hidden");
-    vvod.value = "";
-    podsk.replaceChildren();
-    podsk.classList.add("hidden");
-    vvod.focus();
+  addButton.addEventListener("click", () => {
+    addButton.classList.add("hidden");
+    inputWrapper.classList.remove("hidden");
+    input.value = "";
+    suggestions.replaceChildren();
+    suggestions.classList.add("hidden");
+    input.focus();
   });
-  vvod.addEventListener("input", () => {
-    clearTimeout(taymer);
-    const revZap = ++rev;
-    const q = vvod.value.trim();
-    podsk.replaceChildren();
-    podsk.classList.add("hidden");
-    if (!q) return;
-    taymer = setTimeout(async () => {
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const currentVersion = ++requestVersion;
+    const query = input.value.trim();
+    suggestions.replaceChildren();
+    suggestions.classList.add("hidden");
+    if (!query) return;
+    timer = setTimeout(async () => {
       try {
-        const otv = await fetch(`/projects/skills/?q=${encodeURIComponent(q)}`);
-        if (!otv.ok) {
+        const response = await fetch(`/projects/skills/?q=${encodeURIComponent(query)}`);
+        if (!response.ok) {
           throw new Error("Не удалось загрузить навыки.");
         }
-        const navyki = await otv.json();
-        if (revZap !== rev) return;
-        function dobavitPunkt(podpis, telo, klass) {
-          const punkt = document.createElement("li");
-          punkt.textContent = podpis;
-          punkt.className = klass;
-          punkt.addEventListener("mousedown", sob => {
-            sob.preventDefault();
-            dobavitNav(telo);
+        const skills = await response.json();
+        if (currentVersion !== requestVersion) return;
+        function addSuggestion(caption, body, className) {
+          const item = document.createElement("li");
+          item.textContent = caption;
+          item.className = className;
+          item.addEventListener("mousedown", event => {
+            event.preventDefault();
+            addSkill(body);
           });
-          podsk.appendChild(punkt);
+          suggestions.appendChild(item);
         }
-        navyki.forEach(nav => {
-          dobavitPunkt(nav.name, {
-            skill_id: nav.id
+        skills.forEach(skill => {
+          addSuggestion(skill.name, {
+            skill_id: skill.id
           }, "suggestion-item");
         });
-        const tochno = navyki.some(nav => nav.name.toLowerCase() === q.toLowerCase());
-        if (!tochno) {
-          dobavitPunkt(`Создать «${q}»`, {
-            name: q
+        const hasExactMatch = skills.some(skill => skill.name.toLowerCase() === query.toLowerCase());
+        if (!hasExactMatch) {
+          addSuggestion(`Создать «${query}»`, {
+            name: query
           }, "create-new");
         }
-        podsk.classList.remove("hidden");
-      } catch (err) {
-        if (revZap === rev) {
-          pokazatOsh(err);
+        suggestions.classList.remove("hidden");
+      } catch (error) {
+        if (currentVersion === requestVersion) {
+          showError(error);
         }
       }
     }, 200);
   });
-  vvod.addEventListener("keydown", sob => {
-    if (sob.key === "Escape") {
-      skrytVvod();
+  input.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      hideInput();
     }
-    if (sob.key === "Enter") {
-      sob.preventDefault();
-      const imya = vvod.value.trim();
-      if (imya) {
-        dobavitNav({
-          name: imya
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const name = input.value.trim();
+      if (name) {
+        addSkill({
+          name: name
         });
       }
     }
   });
-  vvod.addEventListener("blur", skrytVvod);
-  obl.addEventListener("click", async sob => {
-    const btn = sob.target.closest(".remove-skill-btn");
-    if (!btn) return;
-    const teg = btn.closest(".skill-chip");
-    btn.disabled = true;
+  input.addEventListener("blur", hideInput);
+  container.addEventListener("click", async event => {
+    const button = event.target.closest(".remove-skill-btn");
+    if (!button) return;
+    const chip = button.closest(".skill-chip");
+    button.disabled = true;
     try {
-      await poslat(`${baza}${teg.dataset.id}/remove/`);
-      teg.remove();
-      if (!obl.querySelector(".skill-chip")) {
-        const pusto = document.createElement("span");
-        pusto.className = "skill-empty";
-        pusto.textContent = "Навыки не указаны";
-        obl.insertBefore(pusto, dobBtn);
+      await sendPost(`${baseUrl}${chip.dataset.id}/remove/`);
+      chip.remove();
+      if (!container.querySelector(".skill-chip")) {
+        const emptyLabel = document.createElement("span");
+        emptyLabel.className = "skill-empty";
+        emptyLabel.textContent = "Навыки не указаны";
+        container.insertBefore(emptyLabel, addButton);
       }
-    } catch (err) {
-      btn.disabled = false;
-      pokazatOsh(err);
+    } catch (error) {
+      button.disabled = false;
+      showError(error);
     }
   });
 });

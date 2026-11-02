@@ -18,8 +18,8 @@
         </div>
         {{ form.email.label_tag }} {{ form.email }}
         {{ form.password.label_tag }} {{ form.password }}
-        {% for err in form.errors.values %}
-        <p style="color: red;">{{err}}</p>
+        {% for error in form.errors.values %}
+        <p style="color: red;">{{error}}</p>
         {% endfor %}
         <button type="submit">Зарегистрироваться</button>
     </form>

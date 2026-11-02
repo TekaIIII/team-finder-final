@@ -8,80 +8,82 @@ from django.views.decorators.http import (
     require_POST,
 )
 
-from common.stranicy import razbit
+from common.pagination import paginate_queryset
 
 from .forms import LoginForm, ProfileForm, RegistrationForm
 from .models import User
 
 
 @require_GET
-def spisok_polz(zap):
-    polz = User.objects.order_by("-id")
-    stran, pref = razbit(polz, zap)
-    dann = {
-        "participants": stran.object_list,
-        "page_obj": stran,
-        "query_prefix": pref,
+def user_list(request):
+    users = User.objects.order_by("-id")
+    page, query_prefix = paginate_queryset(users, request)
+    data = {
+        "participants": page.object_list,
+        "page_obj": page,
+        "query_prefix": query_prefix,
     }
-    return render(zap, "users/participants.html", dann)
+    return render(request, "users/participants.html", data)
 
 
 @require_GET
-def profil_polz(zap, pk):
+def user_profile(request, user_id):
     """Открывает публичный профиль и проекты его владельца."""
-    hoz = get_object_or_404(User.objects.prefetch_related("owned_projects__participants"), pk=pk)
-    return render(zap, "users/user-details.html", {"user": hoz})
+    profile_user = get_object_or_404(
+        User.objects.prefetch_related("owned_projects__participants"), pk=user_id
+    )
+    return render(request, "users/user-details.html", {"user": profile_user})
 
 
 @require_http_methods(["GET", "POST"])
-def registraciya(zap):
-    if zap.user.is_authenticated:
+def register(request):
+    if request.user.is_authenticated:
         return redirect("projects:project_list")
-    frm = RegistrationForm(zap.POST if zap.method == "POST" else None)
-    if zap.method == "POST" and frm.is_valid():
-        frm.save()
+    form = RegistrationForm(request.POST or None)
+    if form.is_valid():
+        form.save()
         return redirect("users:login")
-    return render(zap, "users/register.html", {"form": frm})
+    return render(request, "users/register.html", {"form": form})
 
 
 @require_http_methods(["GET", "POST"])
-def vhod(zap):
-    if zap.user.is_authenticated:
+def login_view(request):
+    if request.user.is_authenticated:
         return redirect("projects:project_list")
-    frm = LoginForm(zap.POST if zap.method == "POST" else None, request=zap)
-    if zap.method == "POST" and frm.is_valid():
-        login(zap, frm.user)
+    form = LoginForm(request.POST or None, request=request)
+    if form.is_valid():
+        login(request, form.user)
         return redirect("projects:project_list")
-    return render(zap, "users/login.html", {"form": frm})
+    return render(request, "users/login.html", {"form": form})
 
 
 @require_POST
-def vyhod(zap):
-    logout(zap)
+def logout_view(request):
+    logout(request)
     return redirect("projects:project_list")
 
 
-@login_required(login_url="/users/login/")
+@login_required
 @require_http_methods(["GET", "POST"])
-def pravka_profilya(zap):
+def edit_profile(request):
     """Связывает форму только с текущим пользователем."""
-    frm = ProfileForm(
-        zap.POST if zap.method == "POST" else None,
-        zap.FILES if zap.method == "POST" else None,
-        instance=zap.user,
+    form = ProfileForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=request.user,
     )
-    if zap.method == "POST" and frm.is_valid():
-        frm.save()
-        return redirect("users:profile", pk=zap.user.pk)
-    return render(zap, "users/edit_profile.html", {"form": frm})
+    if form.is_valid():
+        form.save()
+        return redirect("users:profile", user_id=request.user.pk)
+    return render(request, "users/edit_profile.html", {"form": form})
 
 
-@login_required(login_url="/users/login/")
+@login_required
 @require_http_methods(["GET", "POST"])
-def smena_parolya(zap):
-    frm = PasswordChangeForm(user=zap.user, data=zap.POST if zap.method == "POST" else None)
-    if zap.method == "POST" and frm.is_valid():
-        usr = frm.save()
-        update_session_auth_hash(zap, usr)
-        return redirect("users:profile", pk=usr.pk)
-    return render(zap, "users/change_password.html", {"form": frm})
+def change_password(request):
+    form = PasswordChangeForm(user=request.user, data=request.POST or None)
+    if form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        return redirect("users:profile", user_id=user.pk)
+    return render(request, "users/change_password.html", {"form": form})

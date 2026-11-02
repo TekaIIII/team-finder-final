@@ -30,12 +30,12 @@
     </span>
 
     <div class="filter-chips">
-      {% for nav in all_skills %}
+      {% for skill in all_skills %}
         <a
-          href="?skill={{ nav|urlencode }}"
-          class="filter-chip {% if active_skill == nav %}active{% endif %}"
+          href="?skill={{ skill|urlencode }}"
+          class="filter-chip {% if active_skill == skill %}active{% endif %}"
         >
-          {{ nav }}
+          {{ skill }}
         </a>
       {% endfor %}
 
@@ -69,15 +69,15 @@
         </a>
       {% endif %}
 
-      {% for nom in page_obj.paginator.page_range %}
-        {% if page_obj.number == nom %}
-          <span class="page-btn active">{{ nom }}</span>
+      {% for page_number in page_obj.paginator.page_range %}
+        {% if page_obj.number == page_number %}
+          <span class="page-btn active">{{ page_number }}</span>
         {% else %}
           <a
-            href="?{{ query_prefix }}page={{ nom }}"
+            href="?{{ query_prefix }}page={{ page_number }}"
             class="page-btn"
           >
-            {{ nom }}
+            {{ page_number }}
           </a>
         {% endif %}
       {% endfor %}

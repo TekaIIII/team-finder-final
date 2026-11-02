@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponseForbidden, JsonResponse
@@ -9,7 +11,8 @@ from django.views.decorators.http import (
     require_POST,
 )
 
-from common.stranicy import razbit
+from common.constants import PROJECT_CLOSED, PROJECT_OPEN
+from common.pagination import paginate_queryset
 from skills.models import Skill
 
 from .forms import ProjectForm
@@ -17,159 +20,151 @@ from .models import Project
 
 
 @require_GET
-def glav(zap):
+def index(request):
     return redirect("projects:project_list")
 
 
 @require_GET
-def spisok_proektov(zap):
-    spis = (
+def project_list(request):
+    projects = (
         Project.objects.select_related("owner")
         .prefetch_related("participants")
         .order_by("-created_at", "-id")
     )
 
-    vybor = zap.GET.get("skill", "")
-    if vybor:
-        spis = spis.filter(skills__name=vybor)
+    selected_skill = request.GET.get("skill", "")
+    if selected_skill:
+        projects = projects.filter(skills__name=selected_skill)
 
-    stran, pref = razbit(spis, zap)
+    page, query_prefix = paginate_queryset(projects, request)
 
-    dann = {
-        "projects": stran.object_list,
-        "page_obj": stran,
-        "all_skills": Skill.objects.order_by("name").values_list(
-            "name", flat=True
-        ),
-        "active_skill": vybor,
-        "query_prefix": pref,
+    data = {
+        "projects": page.object_list,
+        "page_obj": page,
+        "all_skills": Skill.objects.order_by("name").values_list("name", flat=True),
+        "active_skill": selected_skill,
+        "query_prefix": query_prefix,
     }
 
-    return render(zap, "projects/project_list.html", dann)
+    return render(request, "projects/project_list.html", data)
 
 
 @ensure_csrf_cookie
 @require_GET
-def kartochka_proekta(zap, pk):
-    pr = get_object_or_404(
-        Project.objects.select_related("owner").prefetch_related(
-            "participants", "skills"
-        ),
-        pk=pk,
+def project_detail(request, project_id):
+    project = get_object_or_404(
+        Project.objects.select_related("owner").prefetch_related("participants", "skills"),
+        pk=project_id,
     )
 
     return render(
-        zap,
+        request,
         "projects/project-details.html",
-        {"project": pr},
+        {"project": project},
     )
 
 
-@login_required(login_url="/users/login/")
+@login_required
 @require_POST
 @transaction.atomic
-def smenit_uchastie(zap, pk):
-    pr = get_object_or_404(Project.objects.select_for_update(), pk=pk)
+def toggle_participation(request, project_id):
+    project = get_object_or_404(Project.objects.select_for_update(), pk=project_id)
 
-    if pr.owner_id == zap.user.pk:
+    if project.owner_id == request.user.pk:
         return JsonResponse(
             {"error": "Автор не может отказаться от своего проекта."},
-            status=400,
+            status=HTTPStatus.BAD_REQUEST,
         )
 
-    uch = pr.participants.filter(pk=zap.user.pk).exists()
+    is_participant = project.participants.filter(pk=request.user.pk).exists()
 
-    if uch:
-        pr.participants.remove(zap.user)
+    if is_participant:
+        project.participants.remove(request.user)
     else:
-        if pr.status == "closed":
+        if project.status == PROJECT_CLOSED:
             return JsonResponse(
                 {"error": "Набор в проект завершён."},
-                status=409,
+                status=HTTPStatus.CONFLICT,
             )
-        pr.participants.add(zap.user)
+        project.participants.add(request.user)
 
-    return JsonResponse({
-        "status": "ok",
-        "participant": not uch,
-    })
-
-
-@login_required(login_url="/users/login/")
-@require_POST
-@transaction.atomic
-def zavershit_proekt(zap, pk):
-    pr = get_object_or_404(Project.objects.select_for_update(), pk=pk)
-
-    if pr.owner_id != zap.user.pk:
-        return JsonResponse(
-            {"error": "Завершить проект может только автор."},
-            status=403,
-        )
-
-    if pr.status != "open":
-        return JsonResponse(
-            {"error": "Проект уже закрыт."},
-            status=409,
-        )
-
-    pr.status = "closed"
-    pr.save(update_fields=["status"])
-
-    return JsonResponse({
-        "status": "ok",
-        "project_status": "closed",
-    })
-
-
-@login_required(login_url="/users/login/")
-@require_http_methods(["GET", "POST"])
-def sozdat_proekt(zap):
-    if zap.method == "POST":
-        frm = ProjectForm(zap.POST)
-    else:
-        frm = ProjectForm()
-
-    if zap.method == "POST" and frm.is_valid():
-        with transaction.atomic():
-            pr = frm.save(commit=False)
-            pr.owner = zap.user
-            pr.save()
-            pr.participants.add(zap.user)
-
-        return redirect("projects:project_detail", pk=pr.pk)
-
-    return render(
-        zap,
-        "projects/create-project.html",
-        {"form": frm, "is_edit": False},
+    return JsonResponse(
+        {
+            "status": "ok",
+            "participant": not is_participant,
+        }
     )
 
 
-@login_required(login_url="/users/login/")
-@require_http_methods(["GET", "POST"])
-def pravit_proekt(zap, pk):
-    pr = get_object_or_404(Project, pk=pk)
+@login_required
+@require_POST
+@transaction.atomic
+def complete_project(request, project_id):
+    project = get_object_or_404(Project.objects.select_for_update(), pk=project_id)
 
-    if pr.owner_id != zap.user.pk:
-        return HttpResponseForbidden(
-            "Редактировать проект может только его автор."
+    if project.owner_id != request.user.pk:
+        return JsonResponse(
+            {"error": "Завершить проект может только автор."},
+            status=HTTPStatus.FORBIDDEN,
         )
 
-    if zap.method == "POST":
-        frm = ProjectForm(zap.POST, instance=pr)
-    else:
-        frm = ProjectForm(instance=pr)
+    if project.status != PROJECT_OPEN:
+        return JsonResponse(
+            {"error": "Проект уже закрыт."},
+            status=HTTPStatus.CONFLICT,
+        )
 
-    if zap.method == "POST" and frm.is_valid():
+    project.status = PROJECT_CLOSED
+    project.save(update_fields=["status"])
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "project_status": PROJECT_CLOSED,
+        }
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_project(request):
+    form = ProjectForm(request.POST or None)
+
+    if form.is_valid():
         with transaction.atomic():
-            pr = frm.save()
-            pr.participants.add(pr.owner)
+            project = form.save(commit=False)
+            project.owner = request.user
+            project.save()
+            project.participants.add(request.user)
 
-        return redirect("projects:project_detail", pk=pr.pk)
+        return redirect("projects:project_detail", project_id=project.pk)
 
     return render(
-        zap,
+        request,
         "projects/create-project.html",
-        {"form": frm, "is_edit": True},
+        {"form": form, "is_edit": False},
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_project(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if project.owner_id != request.user.pk:
+        return HttpResponseForbidden("Редактировать проект может только его автор.")
+
+    form = ProjectForm(request.POST or None, instance=project)
+
+    if form.is_valid():
+        with transaction.atomic():
+            project = form.save()
+            project.participants.add(project.owner)
+
+        return redirect("projects:project_detail", project_id=project.pk)
+
+    return render(
+        request,
+        "projects/create-project.html",
+        {"form": form, "is_edit": True},
     )

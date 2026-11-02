@@ -1,75 +1,66 @@
 // Если файл недоступен, под картинкой остаётся буква имени.
-document.addEventListener("error", (sob) => {
-  if (sob.target.matches?.(".buk-ava-img")) {
-    sob.target.hidden = true;
+document.addEventListener("error", event => {
+  if (event.target.matches?.(".buk-ava-img")) {
+    event.target.hidden = true;
   }
 }, true);
-
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".buk-ava-img[src]").forEach((img) => {
+  document.querySelectorAll(".buk-ava-img[src]").forEach(img => {
     if (img.complete && img.naturalWidth === 0) img.hidden = true;
   });
-
-  const vvod = document.getElementById("id_avatar");
+  const input = document.getElementById("id_avatar");
   const img = document.querySelector(".avatar-preview .buk-ava-img");
-  const knop = document.getElementById("vybrat-avatar");
-  if (!vvod || !img || !knop) return;
-
-  const sbros = document.getElementById("id_sbros_avy");
-  const imya = document.getElementById("id_name");
-  const bukva = document.querySelector(".avatar-preview .buk-ava-letter");
-  const podpis = document.getElementById("avatar-note");
-  const starAdr = img.getAttribute("src");
-  let vremAdr = null;
-
-  function osvobodit() {
-    if (vremAdr) {
-      URL.revokeObjectURL(vremAdr);
-      vremAdr = null;
+  const button = document.getElementById("vybrat-avatar");
+  if (!input || !img || !button) return;
+  const clearCheckbox = document.getElementById("avatar-clear_id");
+  const name = document.getElementById("id_name");
+  const initial = document.querySelector(".avatar-preview .buk-ava-letter");
+  const caption = document.getElementById("avatar-note");
+  const originalUrl = img.getAttribute("src");
+  let previewUrl = null;
+  function releasePreview() {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
     }
   }
-
-  function obnovitBukvu() {
-    if (imya && bukva) {
-      const s = imya.value.trim();
-      bukva.textContent = Array.from(s)[0]?.toUpperCase() || "?";
+  function updateInitial() {
+    if (name && initial) {
+      const text = name.value.trim();
+      initial.textContent = Array.from(text)[0]?.toUpperCase() || "?";
     }
   }
-
-  knop.addEventListener("click", () => vvod.click());
-  imya?.addEventListener("input", obnovitBukvu);
-
-  vvod.addEventListener("change", () => {
-    osvobodit();
-    const fail = vvod.files[0];
-    if (!fail) {
-      if (starAdr && !sbros?.checked) {
-        img.src = starAdr;
+  button.addEventListener("click", () => input.click());
+  name?.addEventListener("input", updateInitial);
+  input.addEventListener("change", () => {
+    releasePreview();
+    const file = input.files[0];
+    if (!file) {
+      if (originalUrl && !clearCheckbox?.checked) {
+        img.src = originalUrl;
         img.hidden = false;
       } else {
         img.hidden = true;
       }
       return;
     }
-    if (sbros) sbros.checked = false;
-    vremAdr = URL.createObjectURL(fail);
-    img.src = vremAdr;
+    if (clearCheckbox) clearCheckbox.checked = false;
+    previewUrl = URL.createObjectURL(file);
+    img.src = previewUrl;
     img.hidden = false;
-    if (podpis) podpis.textContent = "Картинка выбрана. Нажмите «Сохранить», чтобы применить её.";
+    if (caption) caption.textContent = "Картинка выбрана. Нажмите «Сохранить», чтобы применить её.";
   });
-
-  sbros?.addEventListener("change", () => {
-    osvobodit();
-    if (sbros.checked) {
-      vvod.value = "";
+  clearCheckbox?.addEventListener("change", () => {
+    releasePreview();
+    if (clearCheckbox.checked) {
+      input.value = "";
       img.hidden = true;
-      obnovitBukvu();
-      if (podpis) podpis.textContent = "После сохранения аватаром станет буква имени.";
-    } else if (starAdr) {
-      img.src = starAdr;
+      updateInitial();
+      if (caption) caption.textContent = "После сохранения аватаром станет буква имени.";
+    } else if (originalUrl) {
+      img.src = originalUrl;
       img.hidden = false;
     }
   });
-
-  window.addEventListener("pagehide", osvobodit);
+  window.addEventListener("pagehide", releasePreview);
 });

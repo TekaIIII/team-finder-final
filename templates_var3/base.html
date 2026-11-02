@@ -2,21 +2,25 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>{% block title %}TeamFinder{% endblock %}</title>
+
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/header.css' %}">
     <link rel="stylesheet" href="{% static 'css/avatars.css' %}">
+
     {% block extra_css %}{% endblock %}
 </head>
 <body data-page="{% block page_id %}default{% endblock %}">
-{% include 'includes/header.html' %}
-{% block content %}{% endblock %}
-<script src="{% static 'js/avatars.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/share.js' %}"></script>
-<script src="{% static 'js/header.js' %}"></script>
-<script src="{% static 'js/skills.js' %}"></script>
-<script src="{% static 'js/projects.js' %}"></script>
+    {% include 'includes/header.html' %}
+
+    {% block content %}{% endblock %}
+
+    <script src="{% static 'js/avatars.js' %}?v=review-participants-1"></script>
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/share.js' %}"></script>
+    <script src="{% static 'js/header.js' %}"></script>
+    <script src="{% static 'js/skills.js' %}"></script>
+    <script src="{% static 'js/projects.js' %}?v=review-participants-1"></script>
 </body>
 </html>

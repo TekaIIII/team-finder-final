@@ -3,10 +3,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from projects.views import glav
+from projects.views import index
 
 urlpatterns = [
-    path("", glav, name="index"),
+    path("", index, name="index"),
     path("admin/", admin.site.urls),
     path("", include("projects.urls")),
     path("users/", include("users.urls")),

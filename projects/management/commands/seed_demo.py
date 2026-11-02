@@ -3,11 +3,12 @@ from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from common.constants import PROJECT_OPEN
 from projects.models import Project
 from skills.models import Skill
 
-DEMO_PAROL = "TeamFinderDemo!2026"
-PRIMERY = (
+DEMO_PASSWORD = "TeamFinderDemo!2026"
+DEMO_USERS = (
     (
         "anna.demo@example.com",
         "Анна",
@@ -43,34 +44,34 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        dob_polz = 0
-        dob_pr = 0
-        for adr, imya, fam, nazv, opis, navyki in PRIMERY:
-            usr, nov = get_user_model().objects.get_or_create(
-                email=adr,
+        created_users = 0
+        created_projects = 0
+        for email, name, surname, name, description, skills in DEMO_USERS:
+            user, created = get_user_model().objects.get_or_create(
+                email=email,
                 defaults={
-                    "name": imya,
-                    "surname": fam,
+                    "name": name,
+                    "surname": surname,
                     "about": "Учебный аккаунт для знакомства с TeamFinder.",
-                    "password": make_password(DEMO_PAROL),
+                    "password": make_password(DEMO_PASSWORD),
                 },
             )
-            if nov:
-                dob_polz += 1
-            pr, nov_pr = Project.objects.get_or_create(
-                owner=usr,
-                name=nazv,
-                defaults={"description": opis, "status": "open"},
+            if created:
+                created_users += 1
+            project, project_created = Project.objects.get_or_create(
+                owner=user,
+                name=name,
+                defaults={"description": description, "status": PROJECT_OPEN},
             )
-            if nov_pr:
-                dob_pr += 1
-                pr.participants.add(usr)
-                for imya_nav in navyki:
-                    nav, _ = Skill.objects.get_or_create(name=imya_nav)
-                    pr.skills.add(nav)
+            if project_created:
+                created_projects += 1
+                project.participants.add(user)
+                for skill_name in skills:
+                    skill, _ = Skill.objects.get_or_create(name=skill_name)
+                    project.skills.add(skill)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Добавлено пользователей: {dob_polz}, проектов: {dob_pr}. "
+                f"Добавлено пользователей: {created_users}, проектов: {created_projects}. "
                 "Существующие записи и пароли не изменены."
             )
         )

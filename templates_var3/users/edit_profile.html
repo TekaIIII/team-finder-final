@@ -16,15 +16,12 @@
 
         <div class="avatar-upload">
             <div class="avatar-preview">
-                {% include "includes/avatar.html" with polz=user klass="edit-avatar" only %}
+                {% include "includes/avatar.html" with avatar_user=user avatar_class="edit-avatar" only %}
                 <div class="overlay">
                     <button type="button" id="vybrat-avatar">Заменить</button>
                 </div>
             </div>
             {{ form.avatar }}
-            <label class="avatar-reset" for="id_sbros_avy">
-                {{ form.sbros_avy }} Использовать букву имени
-            </label>
             <p class="avatar-note" id="avatar-note" role="status" aria-live="polite">
                 Новая картинка появится сразу. Чтобы сохранить её в профиле, нажмите «Сохранить».
             </p>
@@ -64,9 +61,9 @@
 
         {% if form.errors %}
         <div class="form-errors">
-            {% for pole, oshibki in form.errors.items %}
-                {% for err in oshibki %}
-                    <p>{{ err }}</p>
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <p>{{ error }}</p>
                 {% endfor %}
             {% endfor %}
         </div>

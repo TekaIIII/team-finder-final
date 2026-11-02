@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  async function zapros(adr) {
-    const otv = await fetch(adr, {
+  async function sendRequest(url) {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -8,54 +8,54 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       body: JSON.stringify({})
     });
-    if (otv.redirected) {
-      window.location.href = otv.url;
+    if (response.redirected) {
+      window.location.href = response.url;
       return null;
     }
-    const d = await otv.json().catch(() => ({}));
-    if (!otv.ok || d.status !== "ok") {
-      throw new Error(d.error || "Не удалось выполнить действие.");
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.status !== "ok") {
+      throw new Error(data.error || "Не удалось выполнить действие.");
     }
-    return d;
+    return data;
   }
-  function podklyuchit(id, adres) {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.addEventListener("click", async sob => {
-      sob.preventDefault();
-      if (btn.disabled) return;
-      btn.disabled = true;
+  function connectButton(id, getAddress) {
+    const button = document.getElementById(id);
+    if (!button) return;
+    button.addEventListener("click", async event => {
+      event.preventDefault();
+      if (button.disabled) return;
+      button.disabled = true;
       try {
-        const d = await zapros(adres(btn));
-        if (d) window.location.reload();
-      } catch (err) {
-        btn.disabled = false;
+        const data = await sendRequest(getAddress(button));
+        if (data) window.location.reload();
+      } catch (error) {
+        button.disabled = false;
         if (window.toast) {
-          window.toast(err.message, {
+          window.toast(error.message, {
             type: "error"
           });
         } else {
-          window.alert(err.message);
+          window.alert(error.message);
         }
       }
     });
   }
-  podklyuchit("complete-project-btn", btn => `/projects/${btn.dataset.id}/complete/`);
-  podklyuchit("participate-btn", btn => `/projects/${btn.dataset.project}/toggle-participate/`);
-  const frm = document.querySelector(".project-create-form");
-  if (!frm) return;
-  const nazv = frm.elements.namedItem("name");
-  const opis = frm.elements.namedItem("description");
-  const st = frm.elements.namedItem("status");
-  if (!nazv || !opis || !st) return;
-  const blok = document.createElement("fieldset");
-  const podpis = document.createElement("legend");
-  const zag = document.createElement("h3");
-  const txt = document.createElement("p");
-  const metka = document.createElement("p");
-  const schet = document.createElement("small");
-  podpis.textContent = "Предпросмотр карточки";
-  Object.assign(blok.style, {
+  connectButton("complete-project-btn", button => `/projects/${button.dataset.id}/complete/`);
+  connectButton("participate-btn", button => `/projects/${button.dataset.project}/toggle-participate/`);
+  const form = document.querySelector(".project-create-form");
+  if (!form) return;
+  const titleInput = form.elements.namedItem("name");
+  const descriptionInput = form.elements.namedItem("description");
+  const statusInput = form.elements.namedItem("status");
+  if (!titleInput || !descriptionInput || !statusInput) return;
+  const preview = document.createElement("fieldset");
+  const caption = document.createElement("legend");
+  const title = document.createElement("h3");
+  const description = document.createElement("p");
+  const statusLabel = document.createElement("p");
+  const wordCount = document.createElement("small");
+  caption.textContent = "Предпросмотр карточки";
+  Object.assign(preview.style, {
     border: "1px solid #d1d5db",
     borderRadius: "12px",
     padding: "16px",
@@ -63,27 +63,27 @@ document.addEventListener("DOMContentLoaded", () => {
     backgroundColor: "#f9fafb",
     minWidth: "0"
   });
-  zag.style.overflowWrap = "anywhere";
-  txt.style.overflowWrap = "anywhere";
-  schet.style.color = "#6b7280";
-  blok.append(podpis, zag, txt, metka, schet);
-  frm.insertBefore(blok, frm.querySelector(".form-actions"));
-  function sokratit(stroka, lim) {
-    const s = stroka.trim().replace(/\s+/g, " ");
-    if (s.length <= lim) return s;
-    const kus = s.slice(0, lim - 1);
-    const prob = kus.lastIndexOf(" ");
-    return (prob > 0 ? kus.slice(0, prob) : kus) + "…";
+  title.style.overflowWrap = "anywhere";
+  description.style.overflowWrap = "anywhere";
+  wordCount.style.color = "#6b7280";
+  preview.append(caption, title, description, statusLabel, wordCount);
+  form.insertBefore(preview, form.querySelector(".form-actions"));
+  function shortenText(text, limit) {
+    const normalized = text.trim().replace(/\s+/g, " ");
+    if (normalized.length <= limit) return normalized;
+    const part = normalized.slice(0, limit - 1);
+    const lastSpace = part.lastIndexOf(" ");
+    return (lastSpace > 0 ? part.slice(0, lastSpace) : part) + "…";
   }
-  function obnovit() {
-    const s = opis.value.trim();
-    const slova = s ? s.split(/\s+/).length : 0;
-    zag.textContent = nazv.value.trim() || "Название вашего проекта";
-    txt.textContent = sokratit(s, 150) || "Здесь появится краткое описание проекта.";
-    metka.textContent = st.value === "closed" ? "Статус: закрыт" : "Статус: открыт";
-    schet.textContent = `Слов в описании: ${slova}`;
+  function updatePreview() {
+    const text = descriptionInput.value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    title.textContent = titleInput.value.trim() || "Название вашего проекта";
+    description.textContent = shortenText(text, 150) || "Здесь появится краткое описание проекта.";
+    statusLabel.textContent = statusInput.value === "closed" ? "Статус: закрыт" : "Статус: открыт";
+    wordCount.textContent = `Слов в описании: ${words}`;
   }
-  frm.addEventListener("input", obnovit);
-  frm.addEventListener("change", obnovit);
-  obnovit();
+  form.addEventListener("input", updatePreview);
+  form.addEventListener("change", updatePreview);
+  updatePreview();
 });
